@@ -23,18 +23,18 @@ This repository contains all firmware and ROS 2 packages needed to run a self-co
 
 ---
 
-## ⚙️ Repository Structure
-autonomous-boat/
-├─ boat_bringup/ # launch + config
-├─ boat_msgs/ # custom message definitions
-├─ sensors_as5600/ # masthead wind vane reader
-├─ sensors_vic3d/ # GNSS + IMU wrappers
-├─ estimation_heading/ # yaw: gyro + GPS COG fusion 
-├─ control_heading/ # rudder PID
-├─ control_sail/ # sail trim LUT with hysteresis
-├─ actuators_pwm/ # servo driver + watchdog
-├─ utils_watchdog/ # system safety node
-└─ tools/ # calibration utilities
+## Repository Structure
+autonomous-boat/  
+├─ boat_bringup/ # launch + config  
+├─ boat_msgs/ # custom message definitions  
+├─ sensors_as5600/ # masthead wind vane reader  
+├─ sensors_vic3d/ # GNSS + IMU wrappers  
+├─ estimation_heading/ # yaw: gyro + GPS COG fusion  
+├─ control_heading/ # rudder PID  
+├─ control_sail/ # sail trim LUT with hysteresis  
+├─ actuators_pwm/ # servo driver + watchdog  
+├─ utils_watchdog/ # system safety node  
+└─ tools/ # calibration utilities  
 
 
 Each package is a standard ROS 2 node with its own `package.xml` and `CMakeLists.txt`.
@@ -50,18 +50,18 @@ Each package is a standard ROS 2 node with its own `package.xml` and `CMakeLists
 | I²C-1 | 2 (SDA), 3 (SCL) | AS5600 + PCA9685 | 3.3 V, ~2.2 kΩ pull-ups |
 | Power | 5 V / 3.3 V | sensors/hat | common ground |
 
-Long I²C up a mast can be flaky—optionally a masthead MCU speaking RS-485/CAN can be added.
+Optionally a masthead MCU speaking RS-485/CAN can be added.
 
 ---
 
 ## Core ROS 2 Graph
-/gnss/nmea ← nmea_serial_driver (UART)
-/fix ← nmea_navsat_driver (NavSatFix)
-/imu/data_raw ← vic3d_imu_node (gyro+accel only)
-/imu/data ← imu_filter_madgwick (RPY; use_mag=false)
-/yaw/deg ← heading_estimator_node (yaw corrected toward GPS COG)
-/wind/apparent_angle ← as5600_wind_node
-/rudder/cmd ← heading_controller_node
-/sail/cmd ← sail_controller_node
-/actuators/* ← pca9685_servo_node
-/hard_kill ← watchdog_node
+/gnss/nmea ← nmea_serial_driver (UART)  
+/fix ← nmea_navsat_driver (NavSatFix)  
+/imu/data_raw ← vic3d_imu_node (gyro+accel only)  
+/imu/data ← imu_filter_madgwick (RPY; use_mag=false)  
+/yaw/deg ← heading_estimator_node (yaw corrected toward GPS COG)  
+/wind/apparent_angle ← as5600_wind_node  
+/rudder/cmd ← heading_controller_node  
+/sail/cmd ← sail_controller_node  
+/actuators/* ← pca9685_servo_node  
+/hard_kill ← watchdog_node  
