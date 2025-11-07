@@ -1,8 +1,38 @@
-'''
-Geometry & limits: rudder ±deg, sheet min/max travel, servo µs map.
-Sensors: AS5600 zero-offset, wrap mode; GNSS port/baud; IMU yaw offset.
-Guidance: no-go angle, LOS look-ahead, layline angle, min-tack-time.
-Controllers: rudder PID gains, yaw-rate gain, sheet response curve.
-Safety: geofence (radius or polygon), failsafe timeouts, battery thresholds.
-'''
+###
+#Geometry & limits: rudder ±deg, sheet min/max travel, servo µs map.
+#Sensors: AS5600 zero-offset, wrap mode; GNSS port/baud; IMU yaw offset.
+#Guidance: no-go angle, LOS look-ahead, layline angle, min-tack-time.
+#Controllers: rudder PID gains, yaw-rate gain, sheet response curve.
+#Safety: geofence (radius or polygon), failsafe timeouts, battery thresholds.
+###
+
+actuators_node:
+  ros__parameters:
+    i2c_dev: "/dev/i2c-1"
+    i2c_addr_hex: 0x40
+    oscillator_hz: 25000000.0
+
+    # Frequencies (PCA9685 is global freq)
+    rudder_freq_hz: 330.0 #check manufacturer specs
+    winch_freq_hz: 330.0
+
+    # Channels
+    rudder_channel: 0
+    winch_channel: 1
+
+    # Rudder (std servo)
+    rudder_min_us: 1000.0
+    rudder_center_us: 1500.0
+    rudder_max_us: 2000.0
+    rudder_min_deg: -35.0
+    rudder_max_deg:  35.0
+    rudder_rate_deg_s: 180.0
+
+    # Winch (continuous, 330 Hz)
+    winch_min_us: 500.0
+    winch_neutral_us: 1500.0
+    winch_max_us: 2500.0
+    winch_deadband_us: 4.0
+    winch_rate_pct_s: 300.0
+
 
