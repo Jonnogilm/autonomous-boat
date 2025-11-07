@@ -1,0 +1,8 @@
+'''
+Geometry & limits: rudder ±deg, sheet min/max travel, servo µs map.
+Sensors: AS5600 zero-offset, wrap mode; GNSS port/baud; IMU yaw offset.
+Guidance: no-go angle, LOS look-ahead, layline angle, min-tack-time.
+Controllers: rudder PID gains, yaw-rate gain, sheet response curve.
+Safety: geofence (radius or polygon), failsafe timeouts, battery thresholds.
+'''
+
