@@ -1,0 +1,1 @@
+//Publishes lat/lon, SOG/COG, fix quality, time.
