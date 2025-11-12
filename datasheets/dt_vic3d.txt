@@ -1,0 +1,3 @@
+main datasheet: https://www.st.com/resource/en/datasheet/teseo-vic3d.pdf
+software instructions: https://www.st.com/resource/en/user_manual/um2791-teseovic3-software-instructions-stmicroelectronics.pdf
+Teseo VI and Teseo APP2–NMEA specifications and commands: https://www.st.com/resource/en/user_manual/um3407-teseo-vi-and-teseo-app2nmea-specifications-and-commands-stmicroelectronics.pdf
