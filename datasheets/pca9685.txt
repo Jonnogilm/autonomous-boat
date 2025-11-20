@@ -1,1 +1,2 @@
-https://www.nxp.com/docs/en/data-sheet/PCA9685.pdf
+Chip datasheet: https://www.nxp.com/docs/en/data-sheet/PCA9685.pdf
+Board: https://www.microcenter.com/product/639725/inland-ks006516-channel-12-bit-pwm-servo-driver-i2c-interface

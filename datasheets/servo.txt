@@ -1,0 +1,2 @@
+360 sail winch servo: https://www.amazon.com/dp/B08N525FDV/ref=sspa_dk_detail_0?pd_rd_i=B08N525FDV&pd_rd_w=xjrEd&content-id=amzn1.sym.386c274b-4bfe-4421-9052-a1a56db557ab&pf_rd_p=386c274b-4bfe-4421-9052-a1a56db557ab&pf_rd_r=CYWT6G7FRHAN1SDKY98J&pd_rd_wg=l0VyL&pd_rd_r=ac0cfbcc-ad95-4e19-8b37-a09cd3e5dff4&sp_csd=d2lkZ2V0TmFtZT1zcF9kZXRhaWxfdGhlbWF0aWM&th=1
+High torque rudder servo: https://soldered.com/productdata/2017/01/Soldered_MG995_datasheet.pdf

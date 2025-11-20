@@ -1,4 +1,5 @@
 // to use the inland 16 channel 12-bit PWM/Servo driver via I2C.
+//Restart can be enabled through a powercycle or by setting the SLEEP bit to 0.
 
 #include "sailbot/actuators/pca9685.hpp"
 #include <linux/i2c-dev.h>
