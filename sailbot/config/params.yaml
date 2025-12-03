@@ -13,8 +13,8 @@ actuators_node:
     oscillator_hz: 25000000.0
 
     # Frequencies (PCA9685 is global freq)
-    rudder_freq_hz: 330.0 #check manufacturer specs
-    winch_freq_hz: 330.0
+    rudder_freq_hz: 50.0 #check manufacturer specs
+    winch_freq_hz: 50.0
 
     # Channels
     rudder_channel: 0
