@@ -98,6 +98,19 @@ add_executable(actuators_node src/actuators_node.cpp)
 ament_target_dependencies(actuators_node rclcpp std_msgs)
 target_link_libraries(actuators_node sailbot_actuators)
 
+add_executable(nav_state_estimator_node src/estimation/nav_state_estimator_node.cpp)
+ament_target_dependencies(nav_state_estimator_node
+  rclcpp
+  std_msgs
+  sensor_msgs
+  builtin_interfaces
+)
+
+target_link_libraries(nav_state_estimator_node
+  sailbot_sensors
+  sailbot_estimation
+)
+
 add_executable(sailbot_main src/sailbot_main.cpp)
 ament_target_dependencies(sailbot_main rclcpp geometry_msgs std_msgs)
 target_link_libraries(
@@ -126,6 +139,7 @@ install(
     teseo_serial_node
     actuators_node
     sailbot_main
+    nav_state_estimator_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

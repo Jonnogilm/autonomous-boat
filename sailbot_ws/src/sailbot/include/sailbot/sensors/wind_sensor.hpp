@@ -5,23 +5,25 @@
 
 namespace sailbot::sensors {
 
-class WindVaneAS5600 {
+/// Driver for an AS5600-based wind vane.
+/// Reads a raw absolute angle (0..2*pi radians) from I2C.
+class WindSensor {
 public:
-  // i2c_device: e.g. "/dev/i2c-2"
-  // address:    7-bit I2C address (0x36)
-  WindVaneAS5600(const std::string &i2c_device, uint8_t address = 0x36);
+  // i2c_device: e.g. "/dev/i2c-1"
+  // address:    7-bit I2C address (default 0x36)
+  WindSensor(const std::string& i2c_device, uint8_t address = 0x36);
 
-  // Returns angle in radians [0, 2*pi).
-  // Throws std::runtime_error on failure.
-  float readAngleRad();
+  /// Read angle in radians [0, 2*pi).
+  /// Throws std::runtime_error on failure.
+  float read_angle_rad();
 
 private:
   int fd_;                // I2C file descriptor
   uint8_t address_;
   std::string dev_path_;
 
-  void openDevice();
-  uint16_t readRawAngle(); // 12-bit angle
+  void open_device();
+  uint16_t read_raw_angle(); // 12-bit raw angle
 };
 
-} // namespace sailbot::sensors
+}  // namespace sailbot::sensors
