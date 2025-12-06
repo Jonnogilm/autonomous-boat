@@ -1,0 +1,22 @@
+waypoint:
+  lat_deg: 42.350000
+  lon_deg: -71.100000
+  acceptance_radius_m: 5.0
+
+reference_origin:
+  # Usually the launch location. If omitted, guidance_node will default to waypoint.
+  lat_deg: 42.350000
+  lon_deg: -71.100000
+
+tack:
+  no_go_angle_deg: 40.0
+
+wind:
+  awa_alpha: 0.2
+
+# Guidance node runtime parameters
+rate_hz: 50.0
+
+# Topic names (in case you want to override later)
+nav_topic: "/state/nav_fused"
+awa_topic: "/state/wind_apparent"

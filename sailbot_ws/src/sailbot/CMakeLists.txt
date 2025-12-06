@@ -27,8 +27,10 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/NavState.msg"
   "msg/MissionState.msg"
-  DEPENDENCIES builtin_interfaces geometry_msgs std_msgs
+  "msg/GuidanceDebug.msg"
+  DEPENDENCIES builtin_interfaces std_msgs
 )
+
 
 ament_export_dependencies(rosidl_default_runtime)
 
@@ -90,6 +92,13 @@ ament_target_dependencies(sailbot_utils rclcpp)
 # ------------------------------------------
 # EXECUTABLE NODES
 # ------------------------------------------
+add_executable(guidance_node src/guidance_node.cpp)
+ament_target_dependencies(guidance_node rclcpp std_msgs sailbot__rosidl_typesupport_cpp)
+target_link_libraries(guidance_node sailbot_guidance)
+
+add_executable(mission_node src/mission/mission_node.cpp)
+ament_target_dependencies(mission_node rclcpp std_msgs)
+target_link_libraries(mission_node sailbot_mission)
 
 add_executable(teseo_serial_node src/gnss/teseo_serial_node.cpp)
 ament_target_dependencies(teseo_serial_node rclcpp std_msgs)
@@ -139,6 +148,8 @@ install(
     teseo_serial_node
     actuators_node
     sailbot_main
+    mission_node
+    guidance_node
     nav_state_estimator_node
   DESTINATION lib/${PROJECT_NAME}
 )
