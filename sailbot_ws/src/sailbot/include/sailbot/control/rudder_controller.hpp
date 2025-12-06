@@ -20,8 +20,7 @@ public:
     float max_rudder_deg = +35.0f;
   };
 
-  explicit RudderController(const Params& params = Params());
-
+  explicit RudderController(const Params& params);
   /// Compute rudder command (deg) given desired course, current heading and optional yaw rate.
   ///
   /// @param desired_course_deg  [0..360)

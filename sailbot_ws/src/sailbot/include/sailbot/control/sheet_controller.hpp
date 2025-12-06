@@ -28,8 +28,7 @@ public:
     float run_pct          = 90.0f;  // almost all the way out
   };
 
-  explicit SheetController(const Params& params = Params());
-
+  explicit SheetController(const Params& params);
   /// Compute desired sheet position [0..100] given AWA in degrees.
   ///
   /// @param awa_deg apparent wind angle in degrees (-180..180).

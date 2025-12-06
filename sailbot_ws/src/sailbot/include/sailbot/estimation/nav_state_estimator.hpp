@@ -54,7 +54,7 @@ public:
     double gnss_timeout_sec = 3.0;    // after this with no fix, treat as lost
   };
 
-  explicit NavStateEstimator(const Params& params = Params());
+  explicit NavStateEstimator(const Params& params);
 
   /// Update GNSS fix (from GnssSensor::last_fix()) at time t_sec.
   void update_gnss(const sensors::GnssFix& fix, double t_sec);

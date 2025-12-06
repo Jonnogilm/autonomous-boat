@@ -18,7 +18,6 @@ find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
-
 find_package(rosidl_default_generators REQUIRED)
 
 # ------------------------------------------
@@ -31,7 +30,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES builtin_interfaces std_msgs
 )
 
-
 ament_export_dependencies(rosidl_default_runtime)
 
 # ------------------------------------------
@@ -43,6 +41,7 @@ include_directories(include)
 # BUILD LIBRARIES
 # ------------------------------------------
 
+# ---- ACTUATORS ----
 add_library(sailbot_actuators
   src/actuators/pca9685.cpp
   src/actuators/rudder_servo.cpp
@@ -50,6 +49,7 @@ add_library(sailbot_actuators
 )
 ament_target_dependencies(sailbot_actuators rclcpp std_msgs)
 
+# ---- SENSORS ----
 add_library(sailbot_sensors
   src/sensors/wind_sensor.cpp
   src/sensors/imu_sensor.cpp
@@ -57,6 +57,7 @@ add_library(sailbot_sensors
 )
 ament_target_dependencies(sailbot_sensors rclcpp sensor_msgs)
 
+# ---- ESTIMATION ----
 add_library(sailbot_estimation
   src/estimation/nav_state_estimator.cpp
   src/estimation/true_wind_estimator.cpp
@@ -64,6 +65,7 @@ add_library(sailbot_estimation
 )
 ament_target_dependencies(sailbot_estimation rclcpp geometry_msgs)
 
+# ---- GUIDANCE ----
 add_library(sailbot_guidance
   src/guidance/waypoint_nav.cpp
   src/guidance/wind_model.cpp
@@ -71,18 +73,21 @@ add_library(sailbot_guidance
 )
 ament_target_dependencies(sailbot_guidance rclcpp geometry_msgs)
 
+# ---- CONTROL ----
 add_library(sailbot_control
   src/control/rudder_controller.cpp
   src/control/sheet_controller.cpp
 )
 ament_target_dependencies(sailbot_control rclcpp std_msgs)
 
+# ---- MISSION ----
 add_library(sailbot_mission
   src/mission/fsm.cpp
   src/mission/mission_manager.cpp
 )
 ament_target_dependencies(sailbot_mission rclcpp std_msgs geometry_msgs)
 
+# ---- UTILS ----
 add_library(sailbot_utils
   src/utils/angles.cpp
   src/utils/filters.cpp
@@ -92,12 +97,17 @@ ament_target_dependencies(sailbot_utils rclcpp)
 # ------------------------------------------
 # EXECUTABLE NODES
 # ------------------------------------------
+
 add_executable(guidance_node src/guidance_node.cpp)
-ament_target_dependencies(guidance_node rclcpp std_msgs sailbot__rosidl_typesupport_cpp)
+ament_target_dependencies(guidance_node rclcpp std_msgs)
 target_link_libraries(guidance_node sailbot_guidance)
 
-add_executable(mission_node src/mission/mission_node.cpp)
-ament_target_dependencies(mission_node rclcpp std_msgs)
+add_executable(control_node src/control_node.cpp)
+ament_target_dependencies(control_node rclcpp std_msgs)
+target_link_libraries(control_node sailbot_control sailbot_actuators)
+
+add_executable(mission_node src/mission_node.cpp)
+ament_target_dependencies(mission_node rclcpp std_msgs geometry_msgs)
 target_link_libraries(mission_node sailbot_mission)
 
 add_executable(teseo_serial_node src/gnss/teseo_serial_node.cpp)
@@ -107,14 +117,10 @@ add_executable(actuators_node src/actuators_node.cpp)
 ament_target_dependencies(actuators_node rclcpp std_msgs)
 target_link_libraries(actuators_node sailbot_actuators)
 
-add_executable(nav_state_estimator_node src/estimation/nav_state_estimator_node.cpp)
+add_executable(nav_state_estimator_node src/nav_state_estimator_node.cpp)
 ament_target_dependencies(nav_state_estimator_node
-  rclcpp
-  std_msgs
-  sensor_msgs
-  builtin_interfaces
+  rclcpp std_msgs sensor_msgs builtin_interfaces
 )
-
 target_link_libraries(nav_state_estimator_node
   sailbot_sensors
   sailbot_estimation
@@ -151,6 +157,7 @@ install(
     mission_node
     guidance_node
     nav_state_estimator_node
+    control_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -167,6 +174,7 @@ install(DIRECTORY config/
 )
 
 ament_package()
+
 
 # To build with compile commands for clangd:
 # source /opt/ros/jazzy/setup.bash
