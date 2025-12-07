@@ -32,6 +32,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 ament_export_dependencies(rosidl_default_runtime)
 
+# This ensures message headers are available before building nodes
+rosidl_get_typesupport_target(msg_typesupport_target
+  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
 # ------------------------------------------
 # Include
 # ------------------------------------------
@@ -48,6 +52,7 @@ add_library(sailbot_actuators
   src/actuators/winch_servo.cpp
 )
 ament_target_dependencies(sailbot_actuators rclcpp std_msgs)
+target_link_libraries(sailbot_actuators ${msg_typesupport_target})
 
 # ---- SENSORS ----
 add_library(sailbot_sensors
@@ -56,22 +61,23 @@ add_library(sailbot_sensors
   src/sensors/gnss_sensor.cpp
 )
 ament_target_dependencies(sailbot_sensors rclcpp sensor_msgs)
+target_link_libraries(sailbot_sensors ${msg_typesupport_target})
 
 # ---- ESTIMATION ----
 add_library(sailbot_estimation
   src/estimation/nav_state_estimator.cpp
-  src/estimation/true_wind_estimator.cpp
   src/estimation/velocity_filter.cpp
 )
 ament_target_dependencies(sailbot_estimation rclcpp geometry_msgs)
+target_link_libraries(sailbot_estimation ${msg_typesupport_target})
 
 # ---- GUIDANCE ----
 add_library(sailbot_guidance
   src/guidance/waypoint_nav.cpp
-  src/guidance/wind_model.cpp
   src/guidance/tack_planner.cpp
 )
 ament_target_dependencies(sailbot_guidance rclcpp geometry_msgs)
+target_link_libraries(sailbot_guidance ${msg_typesupport_target})
 
 # ---- CONTROL ----
 add_library(sailbot_control
@@ -79,6 +85,7 @@ add_library(sailbot_control
   src/control/sheet_controller.cpp
 )
 ament_target_dependencies(sailbot_control rclcpp std_msgs)
+target_link_libraries(sailbot_control ${msg_typesupport_target})
 
 # ---- MISSION ----
 add_library(sailbot_mission
@@ -86,6 +93,7 @@ add_library(sailbot_mission
   src/mission/mission_manager.cpp
 )
 ament_target_dependencies(sailbot_mission rclcpp std_msgs geometry_msgs)
+target_link_libraries(sailbot_mission ${msg_typesupport_target})
 
 # ---- UTILS ----
 add_library(sailbot_utils
@@ -93,6 +101,7 @@ add_library(sailbot_utils
   src/utils/filters.cpp
 )
 ament_target_dependencies(sailbot_utils rclcpp)
+target_link_libraries(sailbot_utils ${msg_typesupport_target})
 
 # ------------------------------------------
 # EXECUTABLE NODES
@@ -100,22 +109,23 @@ ament_target_dependencies(sailbot_utils rclcpp)
 
 add_executable(guidance_node src/guidance_node.cpp)
 ament_target_dependencies(guidance_node rclcpp std_msgs)
-target_link_libraries(guidance_node sailbot_guidance)
+target_link_libraries(guidance_node sailbot_guidance ${msg_typesupport_target})
 
 add_executable(control_node src/control_node.cpp)
 ament_target_dependencies(control_node rclcpp std_msgs)
-target_link_libraries(control_node sailbot_control sailbot_actuators)
+target_link_libraries(control_node sailbot_control sailbot_actuators ${msg_typesupport_target})
 
 add_executable(mission_node src/mission_node.cpp)
 ament_target_dependencies(mission_node rclcpp std_msgs geometry_msgs)
-target_link_libraries(mission_node sailbot_mission)
+target_link_libraries(mission_node sailbot_mission ${msg_typesupport_target})
 
 add_executable(teseo_serial_node src/gnss/teseo_serial_node.cpp)
 ament_target_dependencies(teseo_serial_node rclcpp std_msgs)
+target_link_libraries(teseo_serial_node ${msg_typesupport_target})
 
 add_executable(actuators_node src/actuators_node.cpp)
 ament_target_dependencies(actuators_node rclcpp std_msgs)
-target_link_libraries(actuators_node sailbot_actuators)
+target_link_libraries(actuators_node sailbot_actuators ${msg_typesupport_target})
 
 add_executable(nav_state_estimator_node src/nav_state_estimator_node.cpp)
 ament_target_dependencies(nav_state_estimator_node
@@ -124,6 +134,7 @@ ament_target_dependencies(nav_state_estimator_node
 target_link_libraries(nav_state_estimator_node
   sailbot_sensors
   sailbot_estimation
+  ${msg_typesupport_target}
 )
 
 add_executable(sailbot_main src/sailbot_main.cpp)
@@ -137,6 +148,7 @@ target_link_libraries(
   sailbot_control
   sailbot_mission
   sailbot_utils
+  ${msg_typesupport_target}
 )
 
 # ------------------------------------------
@@ -174,9 +186,11 @@ install(DIRECTORY config/
 )
 
 ament_package()
+# ------------------------------------------
 
 
 # To build with compile commands for clangd:
 # source /opt/ros/jazzy/setup.bash
 # rm -rf build install log
 # colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+# colcon build --event-handlers console_direct+

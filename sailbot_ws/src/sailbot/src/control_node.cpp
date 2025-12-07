@@ -14,8 +14,8 @@ class ControlNode : public rclcpp::Node {
 public:
   ControlNode()
   : Node("control_node"),
-    rudder_ctrl_(),
-    sheet_ctrl_() {
+  rudder_ctrl_(sailbot::control::RudderController()),
+  sheet_ctrl_(sailbot::control::SheetController()){
 
     // Parameters
     rudder_kp_ = declare_parameter<double>("rudder.kp", 2.0);
@@ -115,8 +115,9 @@ private:
   bool have_sheet_override_ = false;
 
   // Controllers
-  RudderController rudder_ctrl_;
-  SheetController sheet_ctrl_;
+  sailbot::control::RudderController rudder_ctrl_;
+  sailbot::control::SheetController sheet_ctrl_;
+  
 
   // Parameters
   double rudder_kp_, rudder_kd_, rudder_limit_deg_;
