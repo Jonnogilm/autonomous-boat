@@ -1,5 +1,6 @@
 #include <memory>
 #include <string>
+#include <cmath>
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32.hpp"
@@ -9,7 +10,6 @@
 
 #include "sailbot/guidance/waypoint_nav.hpp"
 #include "sailbot/guidance/tack_planner.hpp"
-#include "sailbot/guidance/wind_model.hpp"
 
 namespace sailbot {
 
@@ -21,10 +21,8 @@ public:
   : Node("guidance_node"),
     wp_params_(),
     tack_params_(),
-    wind_params_(),
     wp_nav_(wp_params_),
-    tack_planner_(tack_params_),
-    wind_model_(wind_params_) {
+    tack_planner_(tack_params_) {
 
     // Declare parameters
     std::string nav_topic = declare_parameter<std::string>(
@@ -60,11 +58,6 @@ public:
       declare_parameter<double>("tack.no_go_angle_deg", 40.0);
     tack_planner_ = guidance::TackPlanner(tack_params_);
 
-    // Wind model params
-    wind_params_.awa_alpha =
-      declare_parameter<double>("wind.awa_alpha", 0.2);
-    wind_model_ = guidance::WindModel(wind_params_);
-
     // Subscriptions
     nav_sub_ = create_subscription<sailbot::msg::NavState>(
       nav_topic, 10,
@@ -96,18 +89,18 @@ private:
   }
 
   void awa_callback(const std_msgs::msg::Float32::SharedPtr msg) {
-    float raw_awa_deg = msg->data;
-    wind_model_.update(raw_awa_deg);
+    raw_awa_deg_ = msg->data;     // degrees in [-180, 180] from estimator node
+    have_awa_ = true;
   }
 
   void timer_step() {
-    if (!has_nav_state_ || !wind_model_.has_awa()) {
+    if (!has_nav_state_ || !have_awa_) {
       return;
     }
 
     const auto& nav = last_nav_state_;
     const float heading = nav.heading_fused_deg;
-    const float awa_smoothed = wind_model_.smoothed_awa_deg();
+    const float awa_deg = raw_awa_deg_;   // RAW AWA (no smoothing)
 
     // LOS to waypoint
     auto res = wp_nav_.compute(nav.lat_deg, nav.lon_deg);
@@ -117,17 +110,15 @@ private:
     bool tacking = false;
 
     if (waypoint_reached) {
-      // For now: hold current heading.
-      // Your mission FSM can separately command sails fully out, etc.
       desired_heading_deg = heading;
     } else {
       // Tack planner chooses direct course vs. close-hauled tack.
       desired_heading_deg = tack_planner_.compute_desired_heading(
-        res.bearing_deg, heading, awa_smoothed);
+        res.bearing_deg, heading, awa_deg);
 
       // Heuristic: if desired heading deviates significantly from bearing, call that "tacking".
       float diff = std::fabs(wrap180(desired_heading_deg - res.bearing_deg));
-      tacking = (diff > 5.0f); // arbitrary small threshold
+      tacking = (diff > 5.0f);
     }
 
     // Publish desired heading
@@ -135,13 +126,13 @@ private:
     dh_msg.data = desired_heading_deg;
     desired_heading_pub_->publish(dh_msg);
 
-    // Publish debug
+    // Publish debug (field name says "smoothed", but we now publish RAW AWA for compatibility)
     sailbot::msg::GuidanceDebug dbg;
     dbg.stamp = now();
     dbg.bearing_to_wp_deg = res.bearing_deg;
-    dbg.distance_to_wp_m = res.distance_m;
+    dbg.distance_to_wp_m  = res.distance_m;
     dbg.desired_heading_deg = desired_heading_deg;
-    dbg.awa_smoothed_deg = awa_smoothed;
+    dbg.awa_deg = awa_deg;   // raw AWA
     dbg.tacking = tacking;
     dbg.waypoint_reached = waypoint_reached;
     debug_pub_->publish(dbg);
@@ -157,15 +148,16 @@ private:
   // Params and helpers
   guidance::WaypointNavParams wp_params_;
   guidance::TackPlannerParams tack_params_;
-  guidance::WindModelParams wind_params_;
 
   guidance::WaypointNavigator wp_nav_;
   guidance::TackPlanner tack_planner_;
-  guidance::WindModel wind_model_;
 
   // State
   sailbot::msg::NavState last_nav_state_;
   bool has_nav_state_ = false;
+
+  bool  have_awa_ = false;
+  float raw_awa_deg_ = 0.0f;
 
   // ROS interfaces
   rclcpp::Subscription<sailbot::msg::NavState>::SharedPtr nav_sub_;

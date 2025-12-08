@@ -15,7 +15,8 @@ public:
 
   /// Read angle in radians [0, 2*pi).
   /// Throws std::runtime_error on failure.
-  float read_angle_rad();
+  float read_angle_rad(); 
+
 
 private:
   int fd_;                // I2C file descriptor

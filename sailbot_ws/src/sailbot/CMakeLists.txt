@@ -1,28 +1,29 @@
 cmake_minimum_required(VERSION 3.8)
 project(sailbot)
 
-# ------------------------------------------
+# ---------------------------------------------------------
 # Default C++ standard
-# ------------------------------------------
+# ---------------------------------------------------------
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
 
-# ------------------------------------------
+# ---------------------------------------------------------
 # Dependencies
-# ------------------------------------------
+# ---------------------------------------------------------
 find_package(ament_cmake REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
 
-# ------------------------------------------
-# Build Messages
-# ------------------------------------------
+# ---------------------------------------------------------
+# Message generation
+# ---------------------------------------------------------
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/NavState.msg"
   "msg/MissionState.msg"
@@ -30,20 +31,23 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES builtin_interfaces std_msgs
 )
 
+# Needed for linking messages into libraries
 ament_export_dependencies(rosidl_default_runtime)
 
-# This ensures message headers are available before building nodes
+# Generate typesupport target
 rosidl_get_typesupport_target(msg_typesupport_target
-  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+  ${PROJECT_NAME} "rosidl_typesupport_cpp"
+)
 
-# ------------------------------------------
-# Include
-# ------------------------------------------
+# ---------------------------------------------------------
+# Includes
+# ---------------------------------------------------------
 include_directories(include)
 
-# ------------------------------------------
+# ---------------------------------------------------------
 # BUILD LIBRARIES
-# ------------------------------------------
+# (Every library MUST be exported later)
+# ---------------------------------------------------------
 
 # ---- ACTUATORS ----
 add_library(sailbot_actuators
@@ -103,9 +107,25 @@ add_library(sailbot_utils
 ament_target_dependencies(sailbot_utils rclcpp)
 target_link_libraries(sailbot_utils ${msg_typesupport_target})
 
-# ------------------------------------------
+# ---------------------------------------------------------
+# EXPORT LIBRARIES (CRUCIAL!)
+# Without this, `ros2 run` cannot find libsailbot_*.so
+# ---------------------------------------------------------
+ament_export_include_directories(include)
+
+ament_export_libraries(
+  sailbot_actuators
+  sailbot_sensors
+  sailbot_estimation
+  sailbot_guidance
+  sailbot_control
+  sailbot_mission
+  sailbot_utils
+)
+
+# ---------------------------------------------------------
 # EXECUTABLE NODES
-# ------------------------------------------
+# ---------------------------------------------------------
 
 add_executable(guidance_node src/guidance_node.cpp)
 ament_target_dependencies(guidance_node rclcpp std_msgs)
@@ -151,9 +171,12 @@ target_link_libraries(
   ${msg_typesupport_target}
 )
 
+
 # ------------------------------------------
 # INSTALL
 # ------------------------------------------
+
+# 1) Install libraries into lib/
 install(
   TARGETS
     sailbot_actuators
@@ -163,6 +186,14 @@ install(
     sailbot_control
     sailbot_mission
     sailbot_utils
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+
+# 2) Install executables into lib/${PROJECT_NAME}
+install(
+  TARGETS
     teseo_serial_node
     actuators_node
     sailbot_main
@@ -170,7 +201,7 @@ install(
     guidance_node
     nav_state_estimator_node
     control_node
-  DESTINATION lib/${PROJECT_NAME}
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
 install(DIRECTORY include/
@@ -190,7 +221,8 @@ ament_package()
 
 
 # To build with compile commands for clangd:
-# source /opt/ros/jazzy/setup.bash
+# source /opt/ros/jazzy/setup.bash source ~/autonomous-boat/sailbot_ws/install/setup.bash
 # rm -rf build install log
 # colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 # colcon build --event-handlers console_direct+
+# source install/setup.bash

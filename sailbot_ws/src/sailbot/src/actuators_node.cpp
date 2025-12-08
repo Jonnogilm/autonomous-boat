@@ -69,18 +69,34 @@ public:
       get_parameter("winch_deadband_us").as_double(),
       get_parameter("winch_rate_pct_s").as_double());
 
-    // Subs
-    rudder_sub_ = create_subscription<std_msgs::msg::Float32>(
+    // -----------------------------
+    // Subscriptions (BACKWARD-COMPATIBLE)
+    // Existing topics you already had:
+    rudder_sub_legacy_ = create_subscription<std_msgs::msg::Float32>(
       "/actuators/rudder/angle_deg", 10,
       [this](std_msgs::msg::Float32::SharedPtr msg){
         rudder_->set_target_deg(msg->data);
       });
 
-    winch_sub_ = create_subscription<std_msgs::msg::Float32>(
+    winch_sub_legacy_ = create_subscription<std_msgs::msg::Float32>(
       "/actuators/winch/pct", 10,
       [this](std_msgs::msg::Float32::SharedPtr msg){
         winch_->set_target_pct(msg->data);
       });
+
+    // New topics published by control_node (compat layer):
+    rudder_sub_ctrl_ = create_subscription<std_msgs::msg::Float32>(
+      "/actuators/rudder_cmd_deg", 10,
+      [this](std_msgs::msg::Float32::SharedPtr msg){
+        rudder_->set_target_deg(msg->data);
+      });
+
+    winch_sub_ctrl_ = create_subscription<std_msgs::msg::Float32>(
+      "/actuators/sheet_cmd_pct", 10,
+      [this](std_msgs::msg::Float32::SharedPtr msg){
+        winch_->set_target_pct(msg->data);
+      });
+    // -----------------------------
 
     // Control loop timer (50 Hz)
     timer_ = create_wall_timer(std::chrono::milliseconds(20), [this](){
@@ -100,7 +116,13 @@ private:
     std::unique_ptr<PCA9685> pca_;
     std::unique_ptr<RudderServo> rudder_;
     std::unique_ptr<WinchServo> winch_;
-    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr rudder_sub_, winch_sub_;
+
+    // Legacy + control-node-compatible subscribers
+    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr rudder_sub_legacy_;
+    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr winch_sub_legacy_;
+    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr rudder_sub_ctrl_;
+    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr winch_sub_ctrl_;
+
     rclcpp::TimerBase::SharedPtr timer_;
     double rudder_freq_, winch_freq_;
 };

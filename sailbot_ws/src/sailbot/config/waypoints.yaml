@@ -11,8 +11,6 @@ reference_origin:
 tack:
   no_go_angle_deg: 40.0
 
-wind:
-  awa_alpha: 0.2
 
 # Guidance node runtime parameters
 rate_hz: 50.0

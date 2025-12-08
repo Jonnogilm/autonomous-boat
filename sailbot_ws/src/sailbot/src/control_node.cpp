@@ -13,9 +13,11 @@ using std::placeholders::_1;
 class ControlNode : public rclcpp::Node {
 public:
   ControlNode()
-  : Node("control_node"),
-  rudder_ctrl_(sailbot::control::RudderController()),
-  sheet_ctrl_(sailbot::control::SheetController()){
+  : Node("control_node")
+  , rudder_ctrl_( sailbot::control::RudderController(
+        sailbot::control::RudderController::Params{} ) )
+  , sheet_ctrl_( sailbot::control::SheetController(
+        sailbot::control::SheetController::Params{} ) ) {
 
     // Parameters
     rudder_kp_ = declare_parameter<double>("rudder.kp", 2.0);
@@ -35,14 +37,23 @@ public:
       "/mission/sheet_override_pct", 10,
       std::bind(&ControlNode::sheet_override_callback, this, _1));
 
+    // NEW: operator/param open-loop sheet command (0..100%)
+    sheet_openloop_sub_ = create_subscription<std_msgs::msg::Float32>(
+      "/control/sheet_openloop_pct", 10,
+      std::bind(&ControlNode::sheet_openloop_callback, this, _1));
+
+    // AWA still subscribed (kept as a safe fallback path)
+    awa_sub_ = create_subscription<std_msgs::msg::Float32>(
+      "/state/wind_apparent", 10,
+      std::bind(&ControlNode::awa_callback, this, _1));
+
     // Publishers
+    // NOTE: keep these topic names (existing behavior)
     rudder_pub_ = create_publisher<std_msgs::msg::Float32>(
-      "/actuators/rudder_cmd_deg",
-      10);
+      "/actuators/rudder_cmd_deg", 10);
 
     sheet_pub_ = create_publisher<std_msgs::msg::Float32>(
-      "/actuators/sheet_cmd_pct",
-      10);
+      "/actuators/sheet_cmd_pct", 10);
 
     // 50 Hz timer
     timer_ = create_wall_timer(
@@ -67,6 +78,16 @@ private:
     have_sheet_override_ = true;
   }
 
+  void sheet_openloop_callback(const std_msgs::msg::Float32::SharedPtr msg) {
+    sheet_openloop_pct_ = std::clamp(msg->data, 0.0f, 100.0f);
+    have_sheet_openloop_ = true;
+  }
+
+  void awa_callback(const std_msgs::msg::Float32::SharedPtr msg) {
+    awa_deg_ = msg->data;
+    have_awa_ = true;
+  }
+
   // --- Main Control Loop ---
   void update() {
     if (!have_desired_heading_ || !have_nav_) {
@@ -76,29 +97,36 @@ private:
     float heading = last_nav_.heading_fused_deg;
     float yaw_rate = last_nav_.yaw_rate_deg_s;
 
-    // Compute rudder
+    // Compute rudder (your controller signature already encapsulates gains/limits)
     float rudder_cmd = rudder_ctrl_.compute(
       desired_heading_deg_,
       heading,
-      yaw_rate,
-      rudder_kp_,
-      rudder_kd_,
-      rudder_limit_deg_);
+      yaw_rate
+    );
 
     // Publish rudder command
     std_msgs::msg::Float32 rudder_msg;
     rudder_msg.data = rudder_cmd;
     rudder_pub_->publish(rudder_msg);
 
-    // Compute sheet command
+    // --- SHEET OPEN-LOOP ARBITRATION ---
+    // Priority: mission override (e.g., 100% dump) > operator open-loop > (fallback) AWA-based controller
     float sheet_pct = 0.0f;
 
+    // Treat override as "active" only if > 0 (so 0 won't mask operator command)
     if (have_sheet_override_ && sheet_override_pct_ > 0.0f) {
-      sheet_pct = sheet_override_pct_;  // mission overrides trim logic
+      sheet_pct = std::clamp(sheet_override_pct_, 0.0f, 100.0f);
+    } else if (have_sheet_openloop_) {
+      sheet_pct = sheet_openloop_pct_;
+    } else if (have_awa_) {
+      // Fallback to your existing logic if no open-loop command present
+      sheet_pct = sheet_ctrl_.compute_from_awa(awa_deg_);
     } else {
-      sheet_pct = sheet_ctrl_.compute_sheet_pct(last_nav_);
+      // No info → safe default
+      sheet_pct = 0.0f;
     }
 
+    // Publish final absolute target for winch (0..100%)
     std_msgs::msg::Float32 sheet_msg;
     sheet_msg.data = sheet_pct;
     sheet_pub_->publish(sheet_msg);
@@ -114,21 +142,29 @@ private:
   float sheet_override_pct_ = 0.0f;
   bool have_sheet_override_ = false;
 
+  // NEW: operator/param open-loop sheet command (0..100)
+  float sheet_openloop_pct_ = 0.0f;
+  bool  have_sheet_openloop_ = false;
+
+  float awa_deg_ = 0.0f;
+  bool have_awa_ = false;
+
   // Controllers
   sailbot::control::RudderController rudder_ctrl_;
-  sailbot::control::SheetController sheet_ctrl_;
-  
+  sailbot::control::SheetController  sheet_ctrl_;
 
   // Parameters
   double rudder_kp_, rudder_kd_, rudder_limit_deg_;
 
   // ROS interfaces
   rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr desired_heading_sub_;
-  rclcpp::Subscription<sailbot::msg::NavState>::SharedPtr nav_sub_;
-  rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr sheet_override_sub_;
+  rclcpp::Subscription<sailbot::msg::NavState>::SharedPtr  nav_sub_;
+  rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr  sheet_override_sub_;
+  rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr  sheet_openloop_sub_; // NEW
+  rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr  awa_sub_;
 
-  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr rudder_pub_;
-  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr sheet_pub_;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr     rudder_pub_;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr     sheet_pub_;
 
   rclcpp::TimerBase::SharedPtr timer_;
 };
