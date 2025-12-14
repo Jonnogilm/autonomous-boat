@@ -16,6 +16,7 @@ constexpr uint8_t PRESCALE = 0xFE;
 constexpr uint8_t LED0_ON_L = 0x06;
 // MODE1 bits
 constexpr uint8_t RESTART = 1<<7;
+constexpr uint8_t AI      = 1<<5;
 constexpr uint8_t SLEEP   = 1<<4;
 constexpr uint8_t ALLCALL = 1<<0;
 // MODE2 bits
@@ -32,8 +33,8 @@ bool PCA9685::begin() {
   if (fd_ < 0) return false;
   if (ioctl(fd_, I2C_SLAVE, addr_) < 0) return false;
 
-  // Reset MODE1/MODE2
-  if (!write8(MODE1, ALLCALL)) return false;
+  // Reset MODE1/MODE2 (Enable Auto-Increment!)
+  if (!write8(MODE1, ALLCALL | AI)) return false;
   if (!write8(MODE2, OUTDRV)) return false;
   // wait for oscillator
   usleep(5000);
