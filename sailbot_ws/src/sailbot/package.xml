@@ -4,7 +4,7 @@
   <version>0.0.1</version>
   <description>Autonomous Sailboat ROS 2 Package</description>
 
-  <maintainer email="you@example.com">Your Name</maintainer>
+  <maintainer email="jpcgilmer@gmail.com">Jonathan Gilmer</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

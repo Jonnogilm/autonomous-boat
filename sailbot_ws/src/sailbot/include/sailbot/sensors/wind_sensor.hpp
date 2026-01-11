@@ -1,30 +1,57 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
-#include <string>
+#include <memory>
+#include <thread>
 
 namespace sailbot::sensors {
 
-/// Driver for an AS5600-based wind vane.
-/// Reads a raw absolute angle (0..2*pi radians) from I2C.
 class WindSensor {
 public:
-  // i2c_device: e.g. "/dev/i2c-1"
-  // address:    7-bit I2C address (default 0x36)
-  WindSensor(const std::string& i2c_device, uint8_t address = 0x36);
+  struct Params {
+    int gpiochip = 4;
+    int gpio_clk = 16;
+    int gpio_dt  = 20;
+    int gpio_sw  = 21;
 
-  /// Read angle in radians [0, 2*pi).
-  /// Throws std::runtime_error on failure.
-  float read_angle_rad(); 
+    int detents_per_rev = 20;
+    bool invert = false;
 
+    double debounce_sec = 0.005;
+  };
+
+  explicit WindSensor(const Params& params);
+  ~WindSensor();
+
+  void start();
+  void stop();
+
+  // Angle in degrees [0..360)
+  float angle_deg() const;
+
+  // Set current position as 0° reference
+  void zero_here();
+
+  // True once per button press; consumes the event
+  bool consume_button_pressed();
 
 private:
-  int fd_;                // I2C file descriptor
-  uint8_t address_;
-  std::string dev_path_;
+  void run();
 
-  void open_device();
-  uint16_t read_raw_angle(); // 12-bit raw angle
+  Params params_;
+
+  std::atomic<bool> running_{false};
+  std::thread worker_;
+
+  std::atomic<int> position_ticks_{0};
+  std::atomic<int> zero_offset_ticks_{0};
+
+  // Button press event flag
+  std::atomic<bool> button_pressed_{false};
+
+  int chip_handle_{-1};
+  uint8_t last_state_{0};
 };
 
 }  // namespace sailbot::sensors

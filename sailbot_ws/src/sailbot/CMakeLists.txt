@@ -63,6 +63,13 @@ add_library(sailbot_sensors
 ament_target_dependencies(sailbot_sensors rclcpp sensor_msgs)
 target_link_libraries(sailbot_sensors ${msg_typesupport_target})
 
+find_library(LGPIO_LIB lgpio)
+if(NOT LGPIO_LIB)
+  message(FATAL_ERROR "Could not find lgpio library (liblgpio). Install it or ensure it is in the linker path.")
+endif()
+target_link_libraries(sailbot_sensors ${LGPIO_LIB})
+
+
 # ---- CONTROL ----
 add_library(sailbot_control
   src/control/rudder_controller.cpp
@@ -79,14 +86,6 @@ add_library(sailbot_mission
 ament_target_dependencies(sailbot_mission rclcpp std_msgs geometry_msgs)
 target_link_libraries(sailbot_mission ${msg_typesupport_target})
 
-# ---- UTILS ----
-add_library(sailbot_utils
-  src/utils/angles.cpp
-  src/utils/filters.cpp
-)
-ament_target_dependencies(sailbot_utils rclcpp)
-target_link_libraries(sailbot_utils ${msg_typesupport_target})
-
 # ---------------------------------------------------------
 # EXPORT LIBRARIES
 # ---------------------------------------------------------
@@ -97,7 +96,6 @@ ament_export_libraries(
   sailbot_sensors
   sailbot_control
   sailbot_mission
-  sailbot_utils
 )
 
 # ---------------------------------------------------------
@@ -108,6 +106,10 @@ ament_export_libraries(
 add_executable(bno055_i2c_node src/bno055_i2c_node.cpp)
 ament_target_dependencies(bno055_i2c_node rclcpp std_msgs sensor_msgs)
 target_link_libraries(bno055_i2c_node sailbot_sensors)
+
+add_executable(wind_sensor_node src/wind_sensor_node.cpp)
+ament_target_dependencies(wind_sensor_node rclcpp std_msgs)
+target_link_libraries(wind_sensor_node sailbot_sensors)
 
 # --- ACTUATORS ---
 add_executable(actuators_node src/actuators_node.cpp)
@@ -134,7 +136,6 @@ install(
     sailbot_sensors
     sailbot_control
     sailbot_mission
-    sailbot_utils
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
 )
@@ -158,6 +159,9 @@ install(DIRECTORY launch/
 
 install(DIRECTORY config/
   DESTINATION share/${PROJECT_NAME}/config
+)
+install(TARGETS wind_sensor_node
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
 ament_package()
