@@ -18,11 +18,11 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 
 # ---------------------------------------------------------
 # Message generation
+# (NavState kept for now, even if partially unused)
 # ---------------------------------------------------------
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/NavState.msg"
@@ -31,10 +31,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES builtin_interfaces std_msgs
 )
 
-# Needed for linking messages into libraries
 ament_export_dependencies(rosidl_default_runtime)
 
-# Generate typesupport target
 rosidl_get_typesupport_target(msg_typesupport_target
   ${PROJECT_NAME} "rosidl_typesupport_cpp"
 )
@@ -46,7 +44,6 @@ include_directories(include)
 
 # ---------------------------------------------------------
 # BUILD LIBRARIES
-# (Every library MUST be exported later)
 # ---------------------------------------------------------
 
 # ---- ACTUATORS ----
@@ -61,27 +58,10 @@ target_link_libraries(sailbot_actuators ${msg_typesupport_target})
 # ---- SENSORS ----
 add_library(sailbot_sensors
   src/sensors/wind_sensor.cpp
-  src/sensors/imu_sensor.cpp
-  src/sensors/gnss_sensor.cpp
+  src/sensors/bno055_i2c.cpp
 )
 ament_target_dependencies(sailbot_sensors rclcpp sensor_msgs)
 target_link_libraries(sailbot_sensors ${msg_typesupport_target})
-
-# ---- ESTIMATION ----
-add_library(sailbot_estimation
-  src/estimation/nav_state_estimator.cpp
-  src/estimation/velocity_filter.cpp
-)
-ament_target_dependencies(sailbot_estimation rclcpp geometry_msgs)
-target_link_libraries(sailbot_estimation ${msg_typesupport_target})
-
-# ---- GUIDANCE ----
-add_library(sailbot_guidance
-  src/guidance/waypoint_nav.cpp
-  src/guidance/tack_planner.cpp
-)
-ament_target_dependencies(sailbot_guidance rclcpp geometry_msgs)
-target_link_libraries(sailbot_guidance ${msg_typesupport_target})
 
 # ---- CONTROL ----
 add_library(sailbot_control
@@ -108,16 +88,13 @@ ament_target_dependencies(sailbot_utils rclcpp)
 target_link_libraries(sailbot_utils ${msg_typesupport_target})
 
 # ---------------------------------------------------------
-# EXPORT LIBRARIES (CRUCIAL!)
-# Without this, `ros2 run` cannot find libsailbot_*.so
+# EXPORT LIBRARIES
 # ---------------------------------------------------------
 ament_export_include_directories(include)
 
 ament_export_libraries(
   sailbot_actuators
   sailbot_sensors
-  sailbot_estimation
-  sailbot_guidance
   sailbot_control
   sailbot_mission
   sailbot_utils
@@ -127,80 +104,47 @@ ament_export_libraries(
 # EXECUTABLE NODES
 # ---------------------------------------------------------
 
-add_executable(guidance_node src/guidance_node.cpp)
-ament_target_dependencies(guidance_node rclcpp std_msgs)
-target_link_libraries(guidance_node sailbot_guidance ${msg_typesupport_target})
+# --- BNO055 IMU ---
+add_executable(bno055_i2c_node src/bno055_i2c_node.cpp)
+ament_target_dependencies(bno055_i2c_node rclcpp std_msgs sensor_msgs)
+target_link_libraries(bno055_i2c_node sailbot_sensors)
 
-add_executable(control_node src/control_node.cpp)
-ament_target_dependencies(control_node rclcpp std_msgs)
-target_link_libraries(control_node sailbot_control sailbot_actuators ${msg_typesupport_target})
-
-add_executable(mission_node src/mission_node.cpp)
-ament_target_dependencies(mission_node rclcpp std_msgs geometry_msgs)
-target_link_libraries(mission_node sailbot_mission ${msg_typesupport_target})
-
-add_executable(teseo_serial_node src/gnss/teseo_serial_node.cpp)
-ament_target_dependencies(teseo_serial_node rclcpp std_msgs)
-target_link_libraries(teseo_serial_node ${msg_typesupport_target})
-
+# --- ACTUATORS ---
 add_executable(actuators_node src/actuators_node.cpp)
 ament_target_dependencies(actuators_node rclcpp std_msgs)
-target_link_libraries(actuators_node sailbot_actuators ${msg_typesupport_target})
+target_link_libraries(actuators_node sailbot_actuators)
 
-add_executable(nav_state_estimator_node src/nav_state_estimator_node.cpp)
-ament_target_dependencies(nav_state_estimator_node
-  rclcpp std_msgs sensor_msgs builtin_interfaces
-)
-target_link_libraries(nav_state_estimator_node
-  sailbot_sensors
-  sailbot_estimation
-  ${msg_typesupport_target}
-)
+# --- CONTROL ---
+add_executable(control_node src/control_node.cpp)
+ament_target_dependencies(control_node rclcpp std_msgs)
+target_link_libraries(control_node sailbot_control sailbot_actuators)
 
-add_executable(sailbot_main src/sailbot_main.cpp)
-ament_target_dependencies(sailbot_main rclcpp geometry_msgs std_msgs)
-target_link_libraries(
-  sailbot_main
-  sailbot_actuators
-  sailbot_sensors
-  sailbot_estimation
-  sailbot_guidance
-  sailbot_control
-  sailbot_mission
-  sailbot_utils
-  ${msg_typesupport_target}
-)
+# --- MISSION ---
+add_executable(mission_node src/mission_node.cpp)
+ament_target_dependencies(mission_node rclcpp std_msgs geometry_msgs)
+target_link_libraries(mission_node sailbot_mission)
 
-
-# ------------------------------------------
+# ---------------------------------------------------------
 # INSTALL
-# ------------------------------------------
+# ---------------------------------------------------------
 
-# 1) Install libraries into lib/
 install(
   TARGETS
     sailbot_actuators
     sailbot_sensors
-    sailbot_estimation
-    sailbot_guidance
     sailbot_control
     sailbot_mission
     sailbot_utils
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
-  RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
-# 2) Install executables into lib/${PROJECT_NAME}
 install(
   TARGETS
-    teseo_serial_node
+    bno055_i2c_node
     actuators_node
-    sailbot_main
-    mission_node
-    guidance_node
-    nav_state_estimator_node
     control_node
+    mission_node
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -217,6 +161,7 @@ install(DIRECTORY config/
 )
 
 ament_package()
+
 # ------------------------------------------
 
 
