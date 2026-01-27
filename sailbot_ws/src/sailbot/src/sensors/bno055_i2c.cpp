@@ -145,6 +145,15 @@ std::optional<float> Bno055I2C::read_heading_deg(std::string* err) {
   return deg;
 }
 
+std::optional<float> Bno055I2C::read_roll_deg(std::string* err) {
+  // Roll is signed 16-bit, LSB = 1/16 degree, range [-180, 180]
+  int16_t raw = 0;
+  if (!read_i16_le(REG_EULER_R_LSB, &raw, err)) return std::nullopt;
+
+  float deg = static_cast<float>(raw) / 16.0f;
+  return deg;
+}
+
 std::optional<float> Bno055I2C::read_yaw_rate_deg_s(std::string* err) {
   // Gyro data is signed 16-bit, unit scaling depends on unit selection.
   // With default units, gyro is in deg/s with 16 LSB per deg/s.

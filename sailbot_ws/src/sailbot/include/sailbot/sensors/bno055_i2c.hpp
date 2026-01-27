@@ -36,6 +36,9 @@ public:
   // Heading in degrees [0,360)
   std::optional<float> read_heading_deg(std::string* err = nullptr);
 
+  // Roll in degrees [-180, 180]
+  std::optional<float> read_roll_deg(std::string* err = nullptr);
+
   // Gyro Z in deg/s (signed). Useful for D-term in heading hold.
   std::optional<float> read_yaw_rate_deg_s(std::string* err = nullptr);
 
@@ -69,6 +72,7 @@ private:
   static constexpr uint8_t REG_CALIB_STAT   = 0x35;
 
   static constexpr uint8_t REG_EULER_H_LSB  = 0x1A;
+  static constexpr uint8_t REG_EULER_R_LSB  = 0x1C;
 
   static constexpr uint8_t REG_GYR_Z_LSB    = 0x18; // gyro Z LSB on page 0 (X=0x14, Y=0x16, Z=0x18)
 

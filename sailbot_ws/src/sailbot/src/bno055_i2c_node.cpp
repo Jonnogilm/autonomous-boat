@@ -38,6 +38,7 @@ public:
 
     // Publishers
     heading_pub_ = create_publisher<std_msgs::msg::Float32>("/imu/heading_mag_deg", 10);
+    roll_pub_ = create_publisher<std_msgs::msg::Float32>("/imu/roll_deg", 10);
     yaw_rate_pub_ = create_publisher<std_msgs::msg::Float32>("/imu/yaw_rate_deg_s", 10);
     calib_pub_ = create_publisher<std_msgs::msg::UInt8>("/imu/calib_stat", 10);
 
@@ -71,6 +72,14 @@ private:
       return;
     }
 
+    auto roll = bno_->read_roll_deg(&err);
+    if (!roll.has_value()) {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                           "read_roll_deg failed: %s", err.c_str());
+      // Continue? Roll failure might be acceptable if heading is ok, but typically all I2C reads fail together.
+      // We'll proceed.
+    }
+
     auto calib = bno_->read_calib_stat(&err);
     if (!calib.has_value()) {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
@@ -87,6 +96,13 @@ private:
     std_msgs::msg::Float32 rmsg;
     rmsg.data = *wz;
     yaw_rate_pub_->publish(rmsg);
+
+    // Publish roll
+    if (roll.has_value()) {
+      std_msgs::msg::Float32 roll_msg;
+      roll_msg.data = *roll;
+      roll_pub_->publish(roll_msg);
+    }
 
     // Publish calib (if available)
     if (calib.has_value()) {
@@ -128,6 +144,7 @@ private:
   std::unique_ptr<sailbot::sensors::Bno055I2C> bno_;
 
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr heading_pub_;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr roll_pub_;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr yaw_rate_pub_;
   rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr calib_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
